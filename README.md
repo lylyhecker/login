@@ -78,7 +78,7 @@ Sau đó Firebase sẽ trả cho bạn 1 đường link như:
 
 ---
 
-## 😱 Demo
+## 😱 Demo về 1 thẻ
 
 ``` <!DOCTYPE html>
 <html lang="vi">
@@ -254,7 +254,66 @@ Sau đó Firebase sẽ trả cho bạn 1 đường link như:
 </body>
 </html>
 ```
+---
 
+## 🐞 Lỗi
+
+
+                                                            😁 **Lỗi thường gặp khi cài đặt**
+   
+                                    npm : File C:\Program Files\nodejs\npm.ps1 cannot be loaded because running scripts is disabled on this system. For
+                                      more information, see about_Execution_Policies at https:/go.microsoft.com/fwlink/?LinkID=135170.
+                                      At line:1 char:1
+                                      + npm install -g firebase-tools
+                                      + ~~  
+                                      + CategoryInfo          : SecurityError: (:) [], PSSecurityException
+                                      + FullyQualifiedErrorId : UnauthorizedAccess
+  ✅ **BƯỚC 1: Cài Node.js**
+      Đây là thứ chứa npm, nên không có nó thì firebase cũng bó tay.
+          
+          👉 **Vào**: https://nodejs.org
+          
+        Chọn LTS version (khuyến nghị cho ổn định)
+          
+        Tải và cài đặt như phần mềm bình thường (bấm Next tới sáng).
+
+  ✅ **BƯỚC 2: Kiểm tra sau khi cài**
+
+        Mở lại Terminal / PowerShell mới (nên tắt hết cửa sổ cũ trước) và gõ:
+        
+            node -v
+            npm -v
+    
+        Nếu nó in ra phiên bản (ví dụ: v18.18.2), nghĩa là ổn rồi.
+    
+        **🛠️ Nếu vẫn lỗi:** Thêm vào PATH thủ công
+          Nhấn Win + S → Gõ Environment Variables
+          Bấm "Environment Variables…"
+          Ở khung bên dưới ("System variables") → Chọn dòng Path → Nhấn Edit
+          Nhấn New, dán vào đường dẫn Node.js (thường là):
+    
+    C:\Program Files\nodejs\
+
+    Nhấn OK → OK → OK
+    
+    
+  ✅ **Cách 3: Mở PowerShell với quyền admin và đổi policy**
+  
+  Nhấn Start → Gõ PowerShell → Click phải → Run as administrator
+  
+  Chạy lệnh sau:
+  
+  powershell
+```
+  Set-ExecutionPolicy RemoteSigned
+```
+  Khi được hỏi:
+  ```
+  Do you want to change the execution policy?
+```
+  → Gõ: Y → Enter
+
+---
 
 ## 👨‍💻 Tác giả
 
@@ -266,4 +325,6 @@ Sau đó Firebase sẽ trả cho bạn 1 đường link như:
 
 ## 📜 Giấy phép
 
-MIT License © 2025
+_MIT License © 2025_
+
+_NoCopyRight_
