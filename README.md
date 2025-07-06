@@ -78,6 +78,184 @@ Sau đó Firebase sẽ trả cho bạn 1 đường link như:
 
 ---
 
+## 😱 Demo
+
+``` <!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chùa Thiên Mụ - Travel Dex</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100 font-sans">
+  <!-- Navigation Bar -->
+  <nav class="bg-white shadow-md p-4 flex justify-between items-center">
+    <div class="flex items-center space-x-4">
+      <a href="index.html" class="text-xl font-bold text-blue-600">Travel Dex</a>
+      <a href="collection.html" class="text-gray-600 hover:text-blue-600">Bộ sưu tập</a>
+    </div>
+    <div class="flex items-center space-x-4">
+      <span id="username" class="text-gray-600">Đang tải...</span>
+      <a href="#" onclick="logout()" class="text-gray-600 hover:text-red-600">Đăng xuất</a>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="container mx-auto p-6">
+    <!-- Card Header -->
+    <h1 class="text-3xl font-bold text-center text-blue-600 mb-6">Name-Topic</h1>
+
+    <!-- Card Content -->
+    <div class="bg-white rounded-lg shadow-lg p-6 flex flex-col md:flex-row items-center">
+      <img src="https://via.placeholder.com/300x200?text=Chùa+Thiên+Mụ" alt="Name" class="w-full md:w-1/3 rounded-lg mb-4 md:mb-0 md:mr-6">
+      <div>
+        <h2 class="text-2xl font-semibold text-gray-800 mb-2">Chùa Thiên Mụ</h2>
+        <p class="text-gray-600 mb-2">......</p>
+        <p class="text-gray-600 mb-2">......</p>
+        <p class="text-gray-600 mb-2">......</p>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="flex justify-center space-x-4 mt-6">
+      <button id="save-card-btn" onclick="saveCard()" class="bg-blue-600 text-white px-6 py-2 rounded-full hover:bg-blue-700 transition flex items-center">
+        <i class="fas fa-save mr-2"></i> Lưu thẻ
+      </button>
+      <a href="collection.html" class="bg-gray-600 text-white px-6 py-2 rounded-full hover:bg-gray-700 transition flex items-center">
+        <i class="fas fa-book mr-2"></i> Bộ sưu tập thẻ
+      </a>
+    </div>
+  </div>
+  <!-- Footer Navigation -->
+  <footer class="bg-white shadow-md p-4 fixed bottom-0 w-full flex justify-around">
+    <a href="index.html" class="text-gray-600 hover:text-blue-600"><i class="fas fa-home text-2xl"></i></a>
+    <a href="collection.html" class="text-gray-600 hover:text-blue-600"><i class="fas fa-map text-2xl"></i></a>
+    <a href="#" onclick="refresh()" class="text-gray-600 hover:text-blue-600"><i class="fas fa-sync-alt text-2xl"></i></a>
+  </footer>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <script>
+    // Initialize Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyDOhTKHU4P3jJ7aTkvSiewNoHu1_KXkcrU",
+      authDomain: "loginandsignin-4932b.firebaseapp.com",
+      projectId: "loginandsignin-4932b",
+      storageBucket: "loginandsignin-4932b.appspot.com",
+      messagingSenderId: "863133586719",
+      appId: "1:863133586719:web:81eb32db8e08e8d89e8c2a"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // Check auth state
+    auth.onAuthStateChanged((user) => {
+      console.log('Auth state changed:', user ? `User ${user.uid}` : 'No user');
+      if (user) {
+        document.getElementById('username').textContent = user.displayName || user.email;
+      } else {
+        window.location.href = 'login.html';
+      }
+    });
+
+    // Save card to Firestore via REST API
+    async function saveCard(attempt = 1, maxAttempts = 3) {
+      console.log(`saveCard attempt ${attempt} of ${maxAttempts}`);
+      try {
+        const user = auth.currentUser;
+        if (!user) {
+          console.warn('No user authenticated');
+          alert('Vui lòng đăng nhập để lưu thẻ!');
+          window.location.href = 'login.html';
+          return;
+        }
+
+        console.log('User authenticated, UID:', user.uid);
+        const card = {
+          id: 'idname',
+          name: 'name',
+          image: 'Link Picture',
+          description: '....',
+          rarity: 1,
+          location: 'Location'
+        };
+
+        console.log('Preparing REST API request for card:', card);
+        const token = await user.getIdToken();
+        const url = `https://firestore.googleapis.com/v1/projects/loginandsignin-4932b/databases/(default)/documents/users/${user.uid}/cards/${card.id}`;
+        const response = await fetch(url, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            fields: {
+              id: { stringValue: card.id },
+              name: { stringValue: card.name },
+              image: { stringValue: card.image },
+              description: { stringValue: card.description },
+              rarity: { integerValue: card.rarity },
+              location: { stringValue: card.location }
+            }
+          })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(`HTTP ${response.status}: ${errorData.error?.message || 'Unknown error'}`);
+        }
+
+        console.log('Card saved successfully via REST API:', card.id);
+        alert('Đã lưu thẻ name vào bộ sưu tập!');
+      } catch (error) {
+        console.error(`Attempt ${attempt} failed:`, error);
+        if (attempt < maxAttempts && (error.message.includes('network') || error.message.includes('400'))) {
+          console.log(`Retrying saveCard, attempt ${attempt + 1}`);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          return saveCard(attempt + 1, maxAttempts);
+        }
+        console.error('Final error saving card:', error);
+        alert('Lỗi lưu thẻ: ' + error.message + '. Vui lòng kiểm tra kết nối mạng hoặc thử lại sau.');
+      }
+    }
+
+    // Bind saveCard to button
+    document.addEventListener('DOMContentLoaded', () => {
+      const saveButton = document.getElementById('save-card-btn');
+      if (saveButton) {
+        console.log('Binding click event to save-card-btn');
+        saveButton.addEventListener('click', saveCard);
+      } else {
+        console.error('Save button not found in DOM');
+      }
+    });
+
+    // Logout function
+    function logout() {
+      auth.signOut().then(() => {
+        console.log('User signed out');
+        window.location.href = 'login.html';
+      }).catch((error) => {
+        console.error('Logout error:', error);
+        alert('Lỗi đăng xuất: ' + error.message);
+      });
+    }
+
+    // Refresh function
+    function refresh() {
+      window.location.reload();
+    }
+  </script>
+</body>
+</html>
+```
+
+
 ## 👨‍💻 Tác giả
 
 * Mr Hecker
