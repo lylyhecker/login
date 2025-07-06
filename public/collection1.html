@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bộ Sưu Tập - Travel Dex</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100 font-sans">
+  <!-- Navigation Bar -->
+  <nav class="bg-white shadow-md p-4 flex justify-between items-center">
+    <div class="flex items-center space-x-4">
+      <a href="index.html" class="text-xl font-bold text-blue-600">Travel Dex</a>
+      <a href="collection.html" class="text-gray-600 hover:text-blue-600 font-semibold">Bộ sưu tập</a>
+    </div>
+    <div class="flex items-center space-x-4">
+      <span id="username" class="text-gray-600">Đang tải...</span>
+      <a href="#" onclick="logout()" class="text-gray-600 hover:text-red-600">Đăng xuất</a>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="container mx-auto p-6">
+    <!-- Header -->
+    <h1 class="text-3xl font-bold text-center text-blue-600 mb-4">🎯 Travel Dex</h1>
+    <div class="text-center mb-6">
+      <p class="text-lg text-gray-600">Level 1</p>
+    </div>
+
+    <!-- Stats Section -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div class="bg-white rounded-lg shadow-md p-4 text-center">
+        <i class="fas fa-ticket-alt text-2xl text-blue-600 mb-2"></i>
+        <p class="text-xl font-semibold card-count">0</p>
+        <p class="text-gray-600">Thẻ Thu Thập</p>
+      </div>
+      <div class="bg-white rounded-lg shadow-md p-4 text-center">
+        <i class="fas fa-trophy text-2xl text-yellow-600 mb-2"></i>
+        <p class="text-xl font-semibold achievement-count">0</p>
+        <p class="text-gray-600">Thành Tựu</p>
+      </div>
+      <div class="bg-white rounded-lg shadow-md p-4 text-center">
+        <i class="fas fa-star text-2xl text-purple-600 mb-2"></i>
+        <p class="text-xl font-semibold rarity-points">0</p>
+        <p class="text-gray-600">Điểm Hiếm</p>
+      </div>
+      <div class="bg-white rounded-lg shadow-md p-4 text-center">
+        <i class="fas fa-map-marker-alt text-2xl text-red-600 mb-2"></i>
+        <p class="text-xl font-semibold location-count">0</p>
+        <p class="text-gray-600">Địa Điểm</p>
+      </div>
+    </div>
+
+    <!-- Progress Section -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+      <h2 class="text-xl font-semibold text-gray-800 mb-4">🎮 Tiến Trình Thu Thập</h2>
+      <div class="w-full bg-gray-200 rounded-full h-4">
+        <div class="bg-blue-600 h-4 rounded-full progress-bar" style="width: 0%"></div>
+      </div>
+      <p class="text-gray-600 mt-2 progress-text">0/10 thẻ để lên cấp tiếp theo</p>
+    </div>
+
+    <!-- Filter Tabs -->
+    <div class="flex justify-center space-x-4 mb-6">
+      <button onclick="filterCollection('all')" class="px-4 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 active">🌍 Tất Cả</button>
+      <button onclick="filterCollection('recent')" class="px-4 py-2 bg-gray-200 text-gray-600 rounded-full hover:bg-gray-300">⏰ Gần Đây</button>
+      <button onclick="filterCollection('rare')" class="px-4 py-2 bg-gray-200 text-gray-600 rounded-full hover:bg-gray-300">💎 Hiếm</button>
+      <button onclick="filterCollection('favorite')" class="px-4 py-2 bg-gray-200 text-gray-600 rounded-full hover:bg-gray-300">❤️ Yêu Thích</button>
+    </div>
+
+    <!-- Collection Display -->
+    <div class="collection-container grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <p class="text-gray-600 text-center col-span-full">Đang tải bộ sưu tập...</p>
+    </div>
+  </div>
+
+  <!-- Footer Navigation -->
+  <footer class="bg-white shadow-md p-4 fixed bottom-0 w-full flex justify-around">
+    <a href="index.html" class="text-gray-600 hover:text-blue-600"><i class="fas fa-home text-2xl"></i></a>
+    <a href="collection.html" class="text-gray-600 hover:text-blue-600"><i class="fas fa-map text-2xl"></i></a>
+    <a href="#" onclick="refresh()" class="text-gray-600 hover:text-blue-600"><i class="fas fa-sync-alt text-2xl"></i></a>
+  </footer>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+
+  <script>
+    // Initialize Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyDOhTKHU4P3jJ7aTkvSiewNoHu1_KXkcrU",
+      authDomain: "loginandsignin-4932b.firebaseapp.com",
+      projectId: "loginandsignin-4932b",
+      storageBucket: "loginandsignin-4932b.appspot.com",
+      messagingSenderId: "863133586719",
+      appId: "1:863133586719:web:81eb32db8e08e8d89e8c2a"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // Check auth state
+    auth.onAuthStateChanged((user) => {
+      console.log('Auth state changed:', user ? `User ${user.uid}` : 'No user');
+      if (user) {
+        document.getElementById('username').textContent = user.displayName || user.email;
+        loadCollection('all');
+      } else {
+        window.location.href = 'login.html';
+      }
+    });
+
+    // Load and display collection
+    async function loadCollection(filter = 'all') {
+      console.log('loadCollection called with filter:', filter);
+      const container = document.querySelector('.collection-container');
+      container.innerHTML = '<p class="text-gray-600 text-center col-span-full">Đang tải bộ sưu tập...</p>';
+
+      try {
+        const user = auth.currentUser;
+        if (!user) {
+          console.warn('No user authenticated in loadCollection');
+          window.location.href = 'login.html';
+          return;
+        }
+
+        console.log('Fetching cards for user:', user.uid);
+        const querySnapshot = await db.collection('users').doc(user.uid).collection('cards').get();
+        console.log('Firestore query successful, docs:', querySnapshot.size);
+        const collection = [];
+        querySnapshot.forEach((doc) => {
+          collection.push(doc.data());
+        });
+
+        let filteredCollection = collection;
+        if (filter === 'recent') {
+          filteredCollection = collection.slice().sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
+        } else if (filter === 'rare') {
+          filteredCollection = collection.filter(card => card.rarity > 1);
+        } else if (filter === 'favorite') {
+          filteredCollection = collection.filter(card => card.favorite);
+        }
+
+        container.innerHTML = '';
+        if (filteredCollection.length === 0) {
+          container.innerHTML = `
+            <div class="col-span-full text-center">
+              <i class="fas fa-circle-notch text-4xl text-gray-400 mb-4"></i>
+              <p class="text-gray-600">📱 Travel Dex Trống!</p>
+              <p class="text-gray-600">Chưa có địa danh nào được thu thập</p>
+              <p class="text-gray-600">Hãy bắt đầu cuộc phiêu lưu và khám phá thế giới!</p>
+            </div>
+          `;
+        } else {
+          filteredCollection.forEach(card => {
+            container.innerHTML += `
+              <div class="bg-white rounded-lg shadow-md p-4 flex items-center hover:shadow-lg transition">
+                <img src="${card.image}" alt="${card.name}" class="w-24 h-24 rounded-md mr-4 object-cover">
+                <div>
+                  <h3 class="text-lg font-semibold text-gray-800">${card.name}</h3>
+                  <p class="text-gray-600 text-sm">${card.description}</p>
+                  <p class="text-gray-500 text-sm">Địa điểm: ${card.location}</p>
+                </div>
+              </div>
+            `;
+          });
+        }
+
+        // Update stats
+        const cardCount = collection.length;
+        const uniqueLocations = new Set(collection.map(card => card.location)).size;
+        const rarityPoints = collection.reduce((sum, card) => sum + (card.rarity || 0), 0);
+        const achievementCount = Math.floor(cardCount / 5);
+
+        document.querySelector('.card-count').textContent = cardCount;
+        document.querySelector('.location-count').textContent = uniqueLocations;
+        document.querySelector('.rarity-points').textContent = rarityPoints;
+        document.querySelector('.achievement-count').textContent = achievementCount;
+
+        // Update progress
+        const progress = Math.min(cardCount, 10);
+        document.querySelector('.progress-bar').style.width = `${(progress / 10) * 100}%`;
+        document.querySelector('.progress-text').textContent = `${progress}/10 thẻ để lên cấp tiếp theo`;
+      } catch (error) {
+        console.error('Error loading collection:', error);
+        container.innerHTML = '<p class="text-gray-600 text-center col-span-full">Lỗi tải bộ sưu tập: ' + error.message + '</p>';
+      }
+    }
+
+    // Filter collection
+    function filterCollection(type) {
+      console.log('filterCollection called with type:', type);
+      document.querySelectorAll('.flex button').forEach(btn => {
+        btn.classList.remove('bg-blue-600', 'text-white');
+        btn.classList.add('bg-gray-200', 'text-gray-600');
+      });
+      event.target.classList.remove('bg-gray-200', 'text-gray-600');
+      event.target.classList.add('bg-blue-600', 'text-white');
+      loadCollection(type);
+    }
+
+    // Logout function
+    function logout() {
+      auth.signOut().then(() => {
+        console.log('User signed out');
+        window.location.href = 'login.html';
+      }).catch((error) => {
+        console.error('Logout error:', error);
+        alert('Lỗi đăng xuất: ' + error.message);
+      });
+    }
+
+    // Refresh function
+    function refresh() {
+      window.location.reload();
+    }
+  </script>
+</body>
+</html>

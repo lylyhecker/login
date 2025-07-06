@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🎯 Travel Dex - Bộ Sưu Tập Địa Danh</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      color: #fff;
+    }
+
+    .header {
+      background: rgba(0,0,0,0.2);
+      backdrop-filter: blur(10px);
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid rgba(255,255,255,0.1);
+    }
+
+    .header h1 {
+      font-size: 24px;
+      background: linear-gradient(45deg, #FFD700, #FFA500);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      background: rgba(255,255,255,0.1);
+      padding: 8px 16px;
+      border-radius: 25px;
+      backdrop-filter: blur(10px);
+    }
+
+    .level-badge {
+      background: linear-gradient(45deg, #FF6B6B, #FF8E53);
+      padding: 4px 12px;
+      border-radius: 15px;
+      font-size: 12px;
+      font-weight: bold;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .stats-dashboard {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+
+    .stat-card {
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 15px;
+      padding: 20px;
+      text-align: center;
+      border: 1px solid rgba(255,255,255,0.2);
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-5px);
+      background: rgba(255,255,255,0.15);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+
+    .stat-icon {
+      font-size: 32px;
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    .stat-number {
+      font-size: 28px;
+      font-weight: bold;
+      margin-bottom: 5px;
+      color: #FFD700;
+    }
+
+    .stat-label {
+      font-size: 14px;
+      opacity: 0.8;
+    }
+
+    .progress-section {
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 15px;
+      padding: 20px;
+      margin-bottom: 30px;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 20px;
+      background: rgba(0,0,0,0.3);
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 10px 0;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #4CAF50, #8BC34A);
+      border-radius: 10px;
+      transition: width 1s ease-in-out;
+      position: relative;
+    }
+
+    .progress-fill::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+      animation: shimmer 2s infinite;
+    }
+
+    @keyframes shimmer {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+
+    .filter-tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .filter-tab {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 25px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      backdrop-filter: blur(10px);
+    }
+
+    .filter-tab.active {
+      background: linear-gradient(45deg, #FF6B6B, #FF8E53);
+      border-color: transparent;
+      transform: scale(1.05);
+    }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .card {
+      background: rgba(255,255,255,0.95);
+      border-radius: 20px;
+      overflow: hidden;
+      transition: all 0.4s ease;
+      cursor: pointer;
+      border: 3px solid transparent;
+      position: relative;
+    }
+
+    .card:hover {
+      transform: translateY(-10px) rotateY(5deg);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+      border-color: #FFD700;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      right: -2px;
+      bottom: -2px;
+      background: linear-gradient(45deg, #FFD700, #FFA500, #FF6B6B, #4ECDC4);
+      border-radius: 22px;
+      z-index: -1;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .card:hover::before {
+      opacity: 1;
+    }
+
+    .card-rarity {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      padding: 4px 8px;
+      border-radius: 10px;
+      font-size: 10px;
+      font-weight: bold;
+      z-index: 2;
+    }
+
+    .rarity-common { background: #95A5A6; }
+    .rarity-rare { background: #3498DB; }
+    .rarity-epic { background: #9B59B6; }
+    .rarity-legendary { background: #F39C12; }
+
+    .card-image {
+      width: 100%;
+      height: 180px;
+      background-size: cover;
+      background-position: center;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #666;
+      background-color: #f0f0f0;
+    }
+
+    .card-content {
+      padding: 15px;
+      color: #333;
+    }
+
+    .card-title {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 8px;
+      color: #2C3E50;
+    }
+
+    .card-description {
+      color: #7F8C8D;
+      font-size: 14px;
+      line-height: 1.4;
+      margin-bottom: 10px;
+    }
+
+    .card-stats {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .card-location {
+      color: #E74C3C;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .card-date {
+      color: #95A5A6;
+      font-size: 11px;
+    }
+
+    .card-badges {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      background: linear-gradient(45deg, #667eea, #764ba2);
+      color: white;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 10px;
+      font-weight: bold;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .empty-pokeball {
+      font-size: 80px;
+      margin-bottom: 20px;
+      opacity: 0.5;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+    }
+
+    .loading-spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid rgba(255,255,255,0.3);
+      border-top: 4px solid #FFD700;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .nav-floating {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .nav-btn {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: linear-gradient(45deg, #FF6B6B, #FF8E53);
+      border: none;
+      color: white;
+      font-size: 24px;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      transition: all 0.3s ease;
+    }
+
+    .nav-btn:hover {
+      transform: scale(1.1);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+    }
+
+    .achievement-popup {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: linear-gradient(45deg, #4CAF50, #8BC34A);
+      color: white;
+      padding: 15px 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      transform: translateX(400px);
+      transition: transform 0.5s ease;
+      z-index: 1000;
+    }
+
+    .achievement-popup.show {
+      transform: translateX(0);
+    }
+
+    @media (max-width: 768px) {
+      .stats-dashboard {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      
+      .filter-tabs {
+        justify-content: center;
+      }
+      
+      .cards-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🎯 Travel Dex</h1>
+    <div class="user-info">
+      <div class="level-badge" id="levelBadge">Level 1</div>
+      <span id="userEmail">👤 Đang tải...</span>
+      <button onclick="logOut()" style="background: #E74C3C; border: none; color: white; padding: 8px 12px; border-radius: 15px; cursor: pointer;">Đăng xuất</button>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="stats-dashboard">
+      <div class="stat-card">
+        <span class="stat-icon">🎫</span>
+        <div class="stat-number" id="totalCards">0</div>
+        <div class="stat-label">Thẻ Thu Thập</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-icon">🏆</span>
+        <div class="stat-number" id="achievements">0</div>
+        <div class="stat-label">Thành Tựu</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-icon">🌟</span>
+        <div class="stat-number" id="rarityScore">0</div>
+        <div class="stat-label">Điểm Hiếm</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-icon">📍</span>
+        <div class="stat-number" id="locations">0</div>
+        <div class="stat-label">Địa Điểm</div>
+      </div>
+    </div>
+
+    <div class="progress-section">
+      <h3>🎮 Tiến Trình Thu Thập</h3>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+      </div>
+      <p id="progressText">0/10 thẻ để lên cấp tiếp theo</p>
+    </div>
+
+    <div class="filter-tabs">
+      <button class="filter-tab active" onclick="filterCards('all')">🌍 Tất Cả</button>
+      <button class="filter-tab" onclick="filterCards('recent')">⏰ Gần Đây</button>
+      <button class="filter-tab" onclick="filterCards('rare')">💎 Hiếm</button>
+      <button class="filter-tab" onclick="filterCards('favorite')">❤️ Yêu Thích</button>
+    </div>
+
+    <div id="loading" class="loading">
+      <div class="loading-spinner"></div>
+      <p>🔍 Đang quét bộ sưu tập...</p>
+    </div>
+
+    <div id="cards" class="cards-grid"></div>
+
+    <div id="emptyState" class="empty-state" style="display: none;">
+      <div class="empty-pokeball">⚪</div>
+      <h2>📱 Travel Dex Trống!</h2>
+      <p>Chưa có địa danh nào được thu thập</p>
+      <p>Hãy bắt đầu cuộc phiêu lưu và khám phá thế giới!</p>
+    </div>
+  </div>
+
+  <div class="nav-floating">
+    <button class="nav-btn" onclick="location.href='index.html'" title="Trang chủ">🏠</button>
+    <button class="nav-btn" onclick="location.href='thienmu.html'" title="Khám phá">🗺️</button>
+    <button class="nav-btn" onclick="refreshCollection()" title="Làm mới">🔄</button>
+  </div>
+
+  <div id="achievementPopup" class="achievement-popup">
+    <div id="achievementText">🏆 Thành tựu mới!</div>
+  </div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
+import { getFirestore, doc, getDoc, getDocs, collection } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDOhTKHU4P3jJ7aTkvSiewNoHu1_KXkcrU",
+  authDomain: "loginandsignin-4932b.firebaseapp.com",
+  projectId: "loginandsignin-4932b",
+  storageBucket: "loginandsignin-4932b.firebasestorage.app",
+  messagingSenderId: "863133586719",
+  appId: "1:863133586719:web:81eb32db8e08e8d89e8c2a"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth();
+const db = getFirestore(app);
+
+let allCards = [];
+let currentFilter = 'all';
+
+window.logOut = () => {
+  signOut(auth).then(() => {
+    showAchievement("👋 Tạm biệt! Hẹn gặp lại!");
+    setTimeout(() => {
+      window.location.href = "index.html";
+    }, 1500);
+  });
+};
+
+window.filterCards = (filter) => {
+  currentFilter = filter;
+  
+  // Update active tab
+  document.querySelectorAll('.filter-tab').forEach(tab => {
+    tab.classList.remove('active');
+  });
+  event.target.classList.add('active');
+  
+  displayCards(allCards, filter);
+};
+
+window.refreshCollection = () => {
+  const user = auth.currentUser;
+  if (user) {
+    showAchievement("🔄 Đang làm mới bộ sưu tập...");
+    loadCollection(user);
+  }
+};
+
+function showAchievement(text) {
+  const popup = document.getElementById('achievementPopup');
+  const textEl = document.getElementById('achievementText');
+  textEl.textContent = text;
+  
+  popup.classList.add('show');
+  setTimeout(() => {
+    popup.classList.remove('show');
+  }, 3000);
+}
+
+function calculateLevel(cardCount) {
+  return Math.floor(cardCount / 3) + 1;
+}
+
+function calculateRarity(cardData) {
+  // Simple rarity calculation based on various factors
+  let score = 0;
+  
+  if (cardData.location && cardData.location.includes('Huế')) score += 2;
+  if (cardData.description && cardData.description.length > 50) score += 1;
+  if (cardData.image) score += 1;
+  
+  if (score >= 4) return { name: 'legendary', label: '👑 Huyền Thoại', value: 4 };
+  if (score >= 3) return { name: 'epic', label: '💜 Sử Thi', value: 3 };
+  if (score >= 2) return { name: 'rare', label: '💙 Hiếm', value: 2 };
+  return { name: 'common', label: '⚪ Thường', value: 1 };
+}
+
+function formatDate(timestamp) {
+  if (!timestamp) return 'Không xác định';
+  const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+  const now = new Date();
+  const diffTime = Math.abs(now - date);
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  if (diffDays === 1) return 'Hôm qua';
+  if (diffDays < 7) return `${diffDays} ngày trước`;
+  if (diffDays < 30) return `${Math.floor(diffDays/7)} tuần trước`;
+  return date.toLocaleDateString('vi-VN');
+}
+
+function createCardElement(data) {
+  const rarity = calculateRarity(data);
+  const card = document.createElement("div");
+  card.className = "card";
+  card.dataset.rarity = rarity.name;
+  
+  const imageUrl = data.image || 'https://source.unsplash.com/featured/?travel,landmark,vietnam';
+  
+  card.innerHTML = `
+    <div class="card-rarity rarity-${rarity.name}">${rarity.label}</div>
+    <div class="card-image" style="background-image: url('${imageUrl}')">
+      ${!data.image ? '🖼️' : ''}
+    </div>
+    <div class="card-content">
+      <div class="card-title">${data.name || 'Địa danh bí ẩn'}</div>
+      <div class="card-description">${data.description || 'Chưa có mô tả...'}</div>
+      <div class="card-stats">
+        <div class="card-location">📍 ${data.location || 'Chưa xác định'}</div>
+        <div class="card-date">🕒 ${formatDate(data.timestamp)}</div>
+      </div>
+      <div class="card-badges">
+        <span class="badge">⭐ ${rarity.value} sao</span>
+        ${data.location ? '<span class="badge">🗺️ Đã khám phá</span>' : ''}
+      </div>
+    </div>
+  `;
+  
+  // Add click effect
+  card.addEventListener('click', () => {
+    card.style.transform = 'scale(0.95)';
+    setTimeout(() => {
+      card.style.transform = '';
+    }, 150);
+  });
+  
+  return card;
+}
+
+function displayCards(cards, filter = 'all') {
+  const cardsContainer = document.getElementById("cards");
+  cardsContainer.innerHTML = "";
+  
+  let filteredCards = [...cards];
+  
+  switch(filter) {
+    case 'recent':
+      filteredCards = cards.filter(card => {
+        const date = card.timestamp ? (card.timestamp.toDate ? card.timestamp.toDate() : new Date(card.timestamp)) : new Date(0);
+        const daysDiff = (new Date() - date) / (1000 * 60 * 60 * 24);
+        return daysDiff <= 7;
+      });
+      break;
+    case 'rare':
+      filteredCards = cards.filter(card => {
+        const rarity = calculateRarity(card);
+        return rarity.value >= 3;
+      });
+      break;
+    case 'favorite':
+      // For now, just show cards with longer descriptions as "favorites"
+      filteredCards = cards.filter(card => card.description && card.description.length > 30);
+      break;
+  }
+  
+  if (filteredCards.length === 0 && filter !== 'all') {
+    cardsContainer.innerHTML = `
+      <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: rgba(255,255,255,0.7);">
+        <div style="font-size: 48px; margin-bottom: 20px;">🔍</div>
+        <h3>Không tìm thấy thẻ nào</h3>
+        <p>Thử lọc khác hoặc thu thập thêm thẻ mới!</p>
+      </div>
+    `;
+    return;
+  }
+  
+  // Sort by rarity and date
+  filteredCards.sort((a, b) => {
+    const rarityA = calculateRarity(a).value;
+    const rarityB = calculateRarity(b).value;
+    if (rarityA !== rarityB) return rarityB - rarityA;
+    
+    const timeA = a.timestamp ? (a.timestamp.toDate ? a.timestamp.toDate() : new Date(a.timestamp)) : new Date(0);
+    const timeB = b.timestamp ? (b.timestamp.toDate ? b.timestamp.toDate() : new Date(b.timestamp)) : new Date(0);
+    return timeB - timeA;
+  });
+  
+  filteredCards.forEach((cardData, index) => {
+    setTimeout(() => {
+      const cardElement = createCardElement(cardData);
+      cardsContainer.appendChild(cardElement);
+    }, index * 100); // Stagger animation
+  });
+}
+
+function updateStats(cards) {
+  const totalCards = cards.length;
+  const level = calculateLevel(totalCards);
+  const rarityScore = cards.reduce((sum, card) => sum + calculateRarity(card).value, 0);
+  const uniqueLocations = new Set(cards.map(card => card.location)).size;
+  
+  // Update UI
+  document.getElementById('totalCards').textContent = totalCards;
+  document.getElementById('achievements').textContent = Math.floor(totalCards / 2);
+  document.getElementById('rarityScore').textContent = rarityScore;
+  document.getElementById('locations').textContent = uniqueLocations;
+  document.getElementById('levelBadge').textContent = `Level ${level}`;
+  
+  // Update progress bar
+  const cardsToNext = (level * 3) - totalCards;
+  const progress = ((totalCards % 3) / 3) * 100;
+  document.getElementById('progressFill').style.width = `${progress}%`;
+  document.getElementById('progressText').textContent = 
+    cardsToNext > 0 ? `${cardsToNext} thẻ để lên Level ${level + 1}` : `🎉 Đã đạt Level ${level}!`;
+}
+
+async function loadCollection(user) {
+  const loadingEl = document.getElementById("loading");
+  const emptyState = document.getElementById("emptyState");
+  
+  try {
+    loadingEl.style.display = "block";
+    emptyState.style.display = "none";
+    
+    const querySnapshot = await getDocs(collection(db, "users", user.uid, "cards"));
+    
+    loadingEl.style.display = "none";
+    
+    if (querySnapshot.empty) {
+      emptyState.style.display = "block";
+      allCards = [];
+    } else {
+      allCards = [];
+      querySnapshot.forEach(docSnap => {
+        allCards.push({ id: docSnap.id, ...docSnap.data() });
+      });
+      
+      updateStats(allCards);
+      displayCards(allCards, currentFilter);
+      
+      // Show achievement for first card
+      if (allCards.length === 1) {
+        showAchievement("🎉 Thu thập thẻ đầu tiên! Chào mừng đến với Travel Dex!");
+      }
+    }
+    
+  } catch (error) {
+    console.error("Lỗi khi tải bộ sưu tập:", error);
+    loadingEl.innerHTML = `
+      <div style="color: #FF6B6B; text-align: center;">
+        <div style="font-size: 48px; margin-bottom: 15px;">❌</div>
+        <p>Có lỗi xảy ra: ${error.message}</p>
+      </div>
+    `;
+  }
+}
+
+onAuthStateChanged(auth, async (user) => {
+  const userEmailEl = document.getElementById("userEmail");
+  
+  if (!user) {
+    showAchievement("🔐 Cần đăng nhập để truy cập Travel Dex!");
+    setTimeout(() => {
+      window.location.href = "index.html";
+    }, 2000);
+    return;
+  }
+  
+  userEmailEl.textContent = `👤 ${user.email}`;
+  await loadCollection(user);
+});
+</script>
+</body>
+</html>

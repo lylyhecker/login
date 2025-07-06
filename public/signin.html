@@ -1,0 +1,125 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Đăng Ký - Travel Dex</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100 font-sans">
+  <!-- Navigation Bar -->
+  <nav class="bg-white shadow-md p-4 flex justify-between items-center">
+    <div class="flex items-center space-x-4">
+      <a href="index.html" class="text-xl font-bold text-blue-600">Travel Dex</a>
+      <a href="collection.html" class="text-gray-600 hover:text-blue-600">Bộ sưu tập</a>
+    </div>
+    <div class="flex items-center space-x-4">
+      <a href="login.html" class="text-gray-600 hover:text-blue-600">Đăng nhập</a>
+    </div>
+  </nav>
+
+  <!-- Signin Form -->
+  <div class="container mx-auto p-6 flex justify-center items-center min-h-[calc(100vh-8rem)]">
+    <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+      <h1 class="text-3xl font-bold text-center text-blue-600 mb-6">Đăng Ký</h1>
+      <form id="signin-form">
+        <div class="mb-4">
+          <label for="displayName" class="block text-gray-600 mb-2">Tên hiển thị</label>
+          <input type="text" id="displayName" class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600" required>
+        </div>
+        <div class="mb-4">
+          <label for="email" class="block text-gray-600 mb-2">Email</label>
+          <input type="email" id="email" class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600" required>
+        </div>
+        <div class="mb-6">
+          <label for="password" class="block text-gray-600 mb-2">Mật khẩu</label>
+          <input type="password" id="password" class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600" required>
+        </div>
+        <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-full w-full hover:bg-blue-700 transition flex items-center justify-center">
+          <i class="fas fa-user-plus mr-2"></i> Đăng ký
+        </button>
+      </form>
+      <p class="text-center text-gray-600 mt-4">Đã có tài khoản? <a href="login.html" class="text-blue-600 hover:underline">Đăng nhập</a></p>
+    </div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+
+  <script>
+    // Initialize Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyDOhTKHU4P3jJ7aTkvSiewNoHu1_KXkcrU",
+      authDomain: "loginandsignin-4932b.firebaseapp.com",
+      projectId: "loginandsignin-4932b",
+      storageBucket: "loginandsignin-4932b.appspot.com",
+      messagingSenderId: "863133586719",
+      appId: "1:863133586719:web:81eb32db8e08e8d89e8c2a"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+
+    // Handle signin form submission
+    document.getElementById('signin-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const displayName = document.getElementById('displayName').value;
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      auth.createUserWithEmailAndPassword(email, password)
+        .then((userCredential) => {
+          // Update user profile with display name
+          return userCredential.user.updateProfile({ displayName });
+        })
+        .then(() => {
+          window.location.href = 'index.html';
+        })
+        .catch((error) => {
+          alert('Đăng ký thất bại: ' + error.message);
+        });
+    });
+  </script>
+</body>
+</html>

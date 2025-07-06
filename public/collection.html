@@ -1,0 +1,720 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bộ Sưu Tập - Travel Dex</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100 font-sans">
+  <!-- Navigation Bar -->
+  <nav class="bg-white shadow-md p-4 flex justify-between items-center">
+    <div class="flex items-center space-x-4">
+      <a href="index.html" class="text-xl font-bold text-blue-600">Travel Dex</a>
+      <a href="collection.html" class="text-gray-600 hover:text-blue-600 font-semibold">Bộ sưu tập</a>
+    </div>
+    <div class="flex items-center space-x-4">
+      <span id="username" class="text-gray-600">Khách</span>
+      <a href="login.html" id="login-link" class="text-gray-600 hover:text-blue-600">Đăng nhập</a>
+      <a href="signup.html" id="signup-link" class="text-gray-600 hover:text-blue-600">Đăng ký</a>
+      <a href="#" id="logout-link" class="hidden text-gray-600 hover:text-red-600" onclick="logout()">Đăng xuất</a>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="container mx-auto p-6">
+    <!-- Header -->
+    <h1 class="text-3xl font-bold text-center text-blue-600 mb-4">🎯 Travel Dex</h1>
+    <div class="text-center mb-6">
+      <p id="level-display" class="text-lg text-gray-600">Cấp độ 1</p>
+    </div>
+
+    <!-- Guest Mode Prompt -->
+    <div id="guest-prompt" class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6 hidden">
+      <p class="font-semibold">Bạn đang ở chế độ khách!</p>
+      <p>Đăng nhập hoặc đăng ký để thu thập thẻ và tham gia hành trình!</p>
+      <a href="login.html" class="text-blue-600 hover:underline">Đăng nhập</a> | 
+      <a href="signup.html" class="text-blue-600 hover:underline">Đăng ký</a>
+    </div>
+
+    <!-- Stats Section -->
+    <div id="stats-section" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 hidden">
+      <div class="bg-white rounded-lg shadow-md p-4 text-center">
+        <i class="fas fa-ticket-alt text-2xl text-blue-600 mb-2"></i>
+        <p class="text-xl font-semibold card-count">0</p>
+        <p class="text-gray-600">Thẻ Thu Thập</p>
+      </div>
+      <div class="bg-white rounded-lg shadow-md p-4 text-center">
+        <i class="fas fa-trophy text-2xl text-yellow-600 mb-2"></i>
+        <p class="text-xl font-semibold achievement-count">0</p>
+        <p class="text-gray-600">Thành Tựu</p>
+      </div>
+      <div class="bg-white rounded-lg shadow-md p-4 text-center">
+        <i class="fas fa-star text-2xl text-purple-600 mb-2"></i>
+        <p class="text-xl font-semibold rarity-points">0</p>
+        <p class="text-gray-600">Điểm Hiếm</p>
+      </div>
+      <div class="bg-white rounded-lg shadow-md p-4 text-center">
+        <i class="fas fa-map-marker-alt text-2xl text-red-600 mb-2"></i>
+        <p class="text-xl font-semibold location-count">0</p>
+        <p class="text-gray-600">Địa Điểm</p>
+      </div>
+    </div>
+
+    <!-- Progress Section -->
+    <div id="progress-section" class="bg-white rounded-lg shadow-md p-6 mb-6 hidden">
+      <h2 class="text-xl font-semibold text-gray-800 mb-4">🎮 Tiến Trình Thu Thập</h2>
+      <div class="w-full bg-gray-200 rounded-full h-4">
+        <div class="bg-blue-600 h-4 rounded-full progress-bar" style="width: 0%"></div>
+      </div>
+      <p class="text-gray-600 mt-2 progress-text">0/10 thẻ để lên cấp tiếp theo</p>
+    </div>
+
+    <!-- Filter Tabs -->
+    <div class="flex justify-center space-x-4 mb-6">
+      <button onclick="filterCollection('all')" class="px-4 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 active">🌍 Tất Cả</button>
+      <button onclick="filterCollection('recent')" class="px-4 py-2 bg-gray-200 text-gray-600 rounded-full hover:bg-gray-300">⏰ Gần Đây</button>
+      <button onclick="filterCollection('rare')" class="px-4 py-2 bg-gray-200 text-gray-600 rounded-full hover:bg-gray-300">💎 Hiếm</button>
+      <button onclick="filterCollection('favorite')" class="px-4 py-2 bg-gray-200 text-gray-600 rounded-full hover:bg-gray-300">❤️ Yêu Thích</button>
+      <button onclick="showLeaderboard()" class="px-4 py-2 bg-gray-200 text-gray-600 rounded-full hover:bg-gray-300">🏆 Bảng Xếp Hạng</button>
+    </div>
+
+    <!-- Collection Display -->
+    <div id="collection-view" class="collection-container grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <p class="text-gray-600 text-center col-span-full">Đang tải bộ sưu tập...</p>
+    </div>
+
+    <!-- Leaderboard Display -->
+    <div id="leaderboard-view" class="hidden bg-white rounded-lg shadow-md p-6 mb-6">
+      <h2 class="text-xl font-semibold text-gray-800 mb-4">🏆 Bảng Xếp Hạng</h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left">
+          <thead>
+            <tr class="bg-blue-100">
+              <th class="px-4 py-2 text-gray-600">Hạng</th>
+              <th class="px-4 py-2 text-gray-600">Người Chơi</th>
+              <th class="px-4 py-2 text-gray-600">Số Thẻ</th>
+            </tr>
+          </thead>
+          <tbody id="leaderboard-body">
+            <tr>
+              <td colspan="3" class="text-center text-gray-600 py-4">Đang tải bảng xếp hạng...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Card Modal -->
+    <div id="card-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50" role="dialog" aria-labelledby="modal-title" aria-modal="true">
+      <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md mx-4">
+        <div class="flex justify-between items-center mb-4">
+          <h2 id="modal-title" class="text-2xl font-semibold text-gray-800"></h2>
+          <button onclick="closeModal('card-modal')" class="text-gray-600 hover:text-gray-800">
+            <i class="fas fa-times text-xl"></i>
+          </button>
+        </div>
+        <img id="modal-image" src="" alt="" class="w-full h-48 object-cover rounded-lg mb-4">
+        <p id="modal-message" class="text-gray-600 mb-2 font-semibold"></p>
+        <p id="modal-description" class="text-gray-600 mb-2"></p>
+        <p id="modal-location" class="text-gray-500 text-sm mb-2"></p>
+        <p id="modal-rarity" class="text-gray-500 text-sm"></p>
+        <div class="flex justify-end mt-4">
+          <button onclick="closeModal('card-modal')" class="bg-blue-600 text-white px-4 py-2 rounded-full hover:bg-blue-700 transition">Đóng</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Level-Up Modal -->
+    <div id="levelup-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50" role="dialog" aria-labelledby="levelup-title" aria-modal="true">
+      <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-sm mx-4 text-center">
+        <i class="fas fa-trophy text-5xl text-yellow-600 mb-4"></i>
+        <h2 id="levelup-title" class="text-2xl font-semibold text-gray-800 mb-4">Chúc mừng!</h2>
+        <p id="levelup-message" class="text-gray-600 mb-6">Bạn đã lên cấp 1!</p>
+        <div class="flex justify-center">
+          <button onclick="closeModal('levelup-modal')" class="bg-blue-600 text-white px-4 py-2 rounded-full hover:bg-blue-700 transition">Đóng</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Guest Restricted Modal -->
+    <div id="guest-restricted-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50" role="dialog" aria-labelledby="guest-restricted-title" aria-modal="true">
+      <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-sm mx-4 text-center">
+        <i class="fas fa-lock text-5xl text-red-600 mb-4"></i>
+        <h2 id="guest-restricted-title" class="text-2xl font-semibold text-gray-800 mb-4">Tính năng bị hạn chế</h2>
+        <p class="text-gray-600 mb-6">Bạn cần đăng nhập để sử dụng tính năng này!</p>
+        <div class="flex justify-center space-x-4">
+          <a href="login.html" class="bg-blue-600 text-white px-4 py-2 rounded-full hover:bg-blue-700 transition">Đăng nhập</a>
+          <a href="signup.html" class="bg-green-600 text-white px-4 py-2 rounded-full hover:bg-green-700 transition">Đăng ký</a>
+          <button onclick="closeModal('guest-restricted-modal')" class="bg-gray-600 text-white px-4 py-2 rounded-full hover:bg-gray-700 transition">Đóng</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer Navigation -->
+  <footer class="bg-white shadow-md p-4 fixed bottom-0 w-full flex justify-around">
+    <a href="index.html" class="text-gray-600 hover:text-blue-600"><i class="fas fa-home text-2xl"></i></a>
+    <a href="collection.html" class="text-gray-600 hover:text-blue-600"><i class="fas fa-map text-2xl"></i></a>
+    <a href="#" onclick="refresh()" class="text-gray-600 hover:text-blue-600"><i class="fas fa-sync-alt text-2xl"></i></a>
+  </footer>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+
+  <script>
+    // Initialize Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyDOhTKHU4P3jJ7aTkvSiewNoHu1_KXkcrU",
+      authDomain: "loginandsignin-4932b.firebaseapp.com",
+      projectId: "loginandsignin-4932b",
+      storageBucket: "loginandsignin-4932b.appspot.com",
+      messagingSenderId: "863133586719",
+      appId: "1:863133586719:web:81eb32db8e08e8d89e8c2a"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // Global collection storage
+    let currentCollection = [];
+    let currentFilter = 'all';
+    let currentUser = null;
+    let isGuest = true;
+    let leaderboardLoading = false;
+
+    // Define hidden cards
+    const hiddenCards = [
+      {
+        id: 'bangioc',
+        name: 'Thác Bản Giốc',
+        image: 'https://via.placeholder.com/300x200?text=Thác+Bản+Giốc',
+        description: 'Thẻ ẩn - Chưa thu thập',
+        rarity: 11,
+        location: 'Cao Bằng, Việt Nam',
+        collected: false
+      },
+      {
+        id: 'fansipan',
+        name: 'Đỉnh Fansipan',
+        image: 'https://via.placeholder.com/300x200?text=Đỉnh+Fansipan',
+        description: 'Thẻ ẩn - Chưa thu thập',
+        rarity: 11,
+        location: 'Lào Cai, Việt Nam',
+        collected: false
+      }
+    ];
+
+    // Check auth state
+    auth.onAuthStateChanged((user) => {
+      console.log('Auth state changed:', user ? `User ${user.uid}` : 'Guest');
+      isGuest = !user;
+      currentUser = user;
+
+      const usernameElement = document.getElementById('username');
+      const loginLink = document.getElementById('login-link');
+      const signupLink = document.getElementById('signup-link');
+      const logoutLink = document.getElementById('logout-link');
+      const guestPrompt = document.getElementById('guest-prompt');
+      const statsSection = document.getElementById('stats-section');
+      const progressSection = document.getElementById('progress-section');
+
+      if (user) {
+        usernameElement.textContent = user.displayName || user.email;
+        loginLink.classList.add('hidden');
+        signupLink.classList.add('hidden');
+        logoutLink.classList.remove('hidden');
+        guestPrompt.classList.add('hidden');
+        statsSection.classList.remove('hidden');
+        progressSection.classList.remove('hidden');
+        loadCollection('all', user);
+      } else {
+        usernameElement.textContent = 'Khách';
+        loginLink.classList.remove('hidden');
+        signupLink.classList.remove('hidden');
+        logoutLink.classList.add('hidden');
+        guestPrompt.classList.remove('hidden');
+        statsSection.classList.add('hidden');
+        progressSection.classList.add('hidden');
+        loadGuestCollection('all');
+      }
+    });
+
+    // Load collection for guests
+    function loadGuestCollection(filter = 'all') {
+      console.log('Loading guest collection, filter:', filter);
+      const container = document.querySelector('.collection-container');
+      container.innerHTML = '<p class="text-gray-600 text-center col-span-full">Đang tải bộ sưu tập...</p>';
+
+      currentCollection = [...hiddenCards];
+      let filteredCollection = currentCollection;
+
+      if (filter === 'recent' || filter === 'favorite') {
+        filteredCollection = [];
+      } else if (filter === 'rare') {
+        filteredCollection = currentCollection.filter(card => card.rarity > 10);
+        console.log('Rare filter applied for guest, cards found:', filteredCollection.length);
+      }
+
+      document.getElementById('collection-view').classList.remove('hidden');
+      document.getElementById('leaderboard-view').classList.add('hidden');
+      displayCollection(filteredCollection, filter, null, true);
+    }
+
+    // Toggle favorite status using Firebase SDK
+    async function toggleFavorite(cardId, isFavorite) {
+      if (isGuest) {
+        showModal('guest-restricted-modal');
+        return false;
+      }
+
+      console.log(`Toggling favorite for card ${cardId} to ${!isFavorite}`);
+      if (!currentUser) {
+        console.error('No authenticated user');
+        alert('Vui lòng đăng nhập để cập nhật trạng thái yêu thích!');
+        window.location.href = 'login.html';
+        return false;
+      }
+
+      const cardExists = currentCollection.some(card => card.id === cardId);
+      if (!cardExists) {
+        console.error(`Card ID ${cardId} not found in currentCollection`);
+        alert('Thẻ không tồn tại trong bộ sưu tập!');
+        return false;
+      }
+
+      try {
+        const docRef = db.collection('users').doc(currentUser.uid).collection('cards').doc(cardId);
+        const doc = await docRef.get();
+        if (!doc.exists) {
+          console.error(`No document found for card ${cardId}`);
+          alert('Thẻ chưa được thu thập! Vui lòng thu thập thẻ trước khi thêm vào yêu thích.');
+          return false;
+        }
+
+        await docRef.update({
+          favorite: !isFavorite
+        });
+        console.log(`Favorite status updated for card ${cardId}: ${!isFavorite}`);
+        return true;
+      } catch (error) {
+        console.error('Error updating favorite status:', error);
+        alert('Lỗi cập nhật trạng thái yêu thích: ' + error.message);
+        return false;
+      }
+    }
+
+    // Save user level and update leaderboard
+    async function saveUserLevel(user, level) {
+      console.log(`Saving level ${level} for user ${user.uid}`);
+      try {
+        await db.collection('users').doc(user.uid).collection('profile').doc('level').set({
+          level: level
+        });
+        console.log('Level saved successfully:', level);
+        return true;
+      } catch (error) {
+        console.error('Error saving level:', error);
+        return false;
+      }
+    }
+
+    // Update leaderboard
+    async function updateLeaderboard(user, cardCount) {
+      if (isGuest) {
+        console.log('Guest user, skipping leaderboard update');
+        return;
+      }
+
+      console.log(`Attempting to update leaderboard for user ${user.uid}, cardCount: ${cardCount}`);
+      try {
+        const validCardCount = Number(cardCount) >= 0 ? Number(cardCount) : 0;
+        const displayName = user.displayName || user.email?.split('@')[0] || 'Người chơi ẩn danh';
+        const leaderboardDoc = {
+          uid: user.uid,
+          displayName: displayName,
+          cardCount: validCardCount,
+          lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        console.log('Writing leaderboard data:', leaderboardDoc);
+        await db.collection('leaderboard').doc(user.uid).set(leaderboardDoc);
+        console.log(`Leaderboard successfully updated for UID ${user.uid} with cardCount: ${validCardCount}`);
+      } catch (error) {
+        console.error('Failed to update leaderboard:', error);
+        alert('Lỗi cập nhật bảng xếp hạng: ' + error.message);
+      }
+    }
+
+    // Load leaderboard
+    async function loadLeaderboard() {
+      if (leaderboardLoading) {
+        console.log('Leaderboard already loading, skipping');
+        return;
+      }
+      leaderboardLoading = true;
+
+      console.log('Starting leaderboard load');
+      const leaderboardBody = document.getElementById('leaderboard-body');
+      leaderboardBody.innerHTML = '<tr><td colspan="3" class="text-center text-gray-600 py-4">Đang tải bảng xếp hạng...</td></tr>';
+
+      try {
+        const querySnapshot = await db.collection('leaderboard')
+          .orderBy('cardCount', 'desc')
+          .limit(10)
+          .get();
+        console.log('Leaderboard query completed, docs:', querySnapshot.size);
+
+        if (querySnapshot.empty) {
+          console.log('Leaderboard collection is empty');
+          leaderboardBody.innerHTML = '<tr><td colspan="3" class="text-center text-gray-600 py-4">Chưa có dữ liệu bảng xếp hạng! Hãy thu thập thẻ để xuất hiện trên bảng xếp hạng.</td></tr>';
+          leaderboardLoading = false;
+          return;
+        }
+
+        leaderboardBody.innerHTML = '';
+const top10Ids = querySnapshot.docs.map(doc => doc.id);
+if (currentUser && !top10Ids.includes(currentUser.uid)) {
+  db.collection('leaderboard').doc(currentUser.uid).get().then((yourDoc) => {
+    if (yourDoc.exists) {
+      const yourData = yourDoc.data();
+      const yourRow = document.createElement('tr');
+      yourRow.className = 'border-t border-b border-blue-200 bg-blue-50';
+      yourRow.innerHTML = `
+        <td class='px-4 py-2 text-blue-500 font-semibold'>--</td>
+        <td class='px-4 py-2 text-blue-500 font-semibold'>${yourData.displayName}</td>
+        <td class='px-4 py-2 text-blue-500 font-semibold'>${yourData.cardCount}</td>
+      `;
+      leaderboardBody.appendChild(yourRow);
+    }
+  });
+}
+        const docs = querySnapshot.docs;
+docs.forEach((doc, index) => {
+          const userData = doc.data();
+          console.log(`Processing leaderboard entry for doc ID ${doc.id}:`, userData);
+          const cardCount = Number(userData.cardCount) >= 0 ? Number(userData.cardCount) : 0;
+          const displayName = userData.displayName || 'Người chơi ẩn danh';
+          const rank = index + 1;
+          const row = document.createElement('tr');
+          row.className = 'border-b';
+          
+
+
+
+
+
+
+
+if (rank === 1) row.classList.add("bg-yellow-100");
+else if (rank === 2) row.classList.add("bg-gray-200");
+else if (rank === 3) row.classList.add("bg-orange-100");
+if (currentUser && doc.id === currentUser.uid) row.classList.add("bg-blue-100");
+const medalIcon = rank === 1
+  ? '<i class="fas fa-crown text-yellow-400 mr-2"></i>'
+  : rank === 2
+  ? '<i class="fas fa-gem text-gray-400 mr-2"></i>'
+  : rank === 3
+  ? '<i class="fas fa-star text-orange-400 mr-2"></i>'
+  : '';
+row.innerHTML = `
+            <td class="px-4 py-2 flex items-center">
+              ${rank <= 3 ? `<i class="fas fa-medal text-${rank === 1 ? 'yellow' : rank === 2 ? 'gray' : 'bronze'}-600 mr-2"></i>` : ''}
+              ${rank}
+            </td>
+            <td class="px-4 py-2">${medalIcon}${displayName}</td>
+            <td class="px-4 py-2">${cardCount}</td>
+          `;
+          leaderboardBody.appendChild(row);
+          console.log(`Added leaderboard row: rank=${rank}, displayName=${displayName}, cardCount=${cardCount}`);
+        });
+      } catch (error) {
+        console.error('Error loading leaderboard:', error);
+        leaderboardBody.innerHTML = '<tr><td colspan="3" class="text-center text-gray-600 py-4">Lỗi tải bảng xếp hạng: ' + error.message + '</td></tr>';
+      } finally {
+        leaderboardLoading = false;
+        console.log('Leaderboard load completed');
+      }
+    }
+
+    // Debounced showLeaderboard
+    let leaderboardTimeout = null;
+    function showLeaderboard() {
+      console.log('Request to show leaderboard');
+      if (leaderboardTimeout) {
+        clearTimeout(leaderboardTimeout);
+      }
+      leaderboardTimeout = setTimeout(() => {
+        document.getElementById('collection-view').classList.add('hidden');
+        document.getElementById('leaderboard-view').classList.remove('hidden');
+        document.querySelectorAll('.flex button').forEach(btn => {
+          btn.classList.remove('bg-blue-600', 'text-white');
+          btn.classList.add('bg-gray-200', 'text-gray-600');
+        });
+        document.querySelector('button[onclick="showLeaderboard()"]').classList.add('bg-blue-600', 'text-white');
+        loadLeaderboard();
+      }, 300);
+    }
+
+    // Show level-up modal
+    function showLevelUpModal(level) {
+      console.log('Showing level-up modal for level:', level);
+      const modal = document.getElementById('levelup-modal');
+      const message = document.getElementById('levelup-message');
+      message.textContent = `Bạn đã lên cấp ${level}!`;
+      modal.classList.remove('hidden');
+      modal.focus();
+    }
+
+    // Display collection
+    function displayCollection(collection, filter, user, isGuestMode = false) {
+      console.log('Displaying collection, filter:', filter, 'cards:', collection.length, 'guest mode:', isGuestMode);
+      const container = document.querySelector('.collection-container');
+      container.innerHTML = '';
+
+      if (collection.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full text-center">
+            <i class="fas fa-circle-notch text-4xl text-gray-400 mb-4"></i>
+            <p class="text-gray-600">📱 Travel Dex Trống!</p>
+            <p class="text-gray-600">Chưa có ${filter === 'rare' ? 'thẻ hiếm (rarity > 10)' : filter === 'favorite' ? 'thẻ yêu thích' : 'địa danh'} nào được thu thập</p>
+            ${isGuestMode ? '<p class="text-gray-600">Đăng nhập để bắt đầu thu thập!</p>' : '<p class="text-gray-600">Hãy bắt đầu cuộc phiêu lưu và khám phá thế giới!</p>'}
+          </div>
+        `;
+        return;
+      }
+
+      collection.forEach((card) => {
+        const cardElement = document.createElement('div');
+        cardElement.className = `bg-white rounded-lg shadow-md p-4 flex items-center hover:shadow-lg transition ${card.collected && !isGuestMode ? 'cursor-pointer' : 'cursor-not-allowed'}`;
+        cardElement.innerHTML = `
+          <div class="relative">
+            <img src="${card.image}" alt="${card.name}" class="w-24 h-24 rounded-md mr-4 object-cover">
+            ${card.collected ? '' : '<i class="fas fa-lock absolute top-2 right-2 text-white text-xl bg-black bg-opacity-50 rounded-full p-1"></i>'}
+          </div>
+          <div class="flex-1">
+            <h3 class="text-lg font-semibold text-gray-800">${card.name}</h3>
+            <p class="text-gray-600 text-sm">${card.description}</p>
+            <p class="text-gray-500 text-sm">Địa điểm: ${card.location}</p>
+            <p class="text-gray-500 text-sm">Rarity: ${card.rarity}</p>
+          </div>
+          ${card.collected && !isGuestMode ? `<i class="${card.favorite ? 'fas' : 'far'} fa-heart text-xl ${card.favorite ? 'text-red-600' : 'text-gray-400'} hover:text-red-600 cursor-pointer ml-2 favorite-icon" data-card-id="${card.id}" data-is-favorite="${card.favorite || false}"></i>` : ''}
+        `;
+
+        // Card click event
+        if (card.collected && !isGuestMode) {
+          cardElement.addEventListener('click', (e) => {
+            if (!e.target.classList.contains('favorite-icon')) {
+              console.log('Card clicked, name:', card.name);
+              showModal('card-modal');
+            }
+          });
+        } else if (isGuestMode) {
+          cardElement.addEventListener('click', (e) => {
+            if (!e.target.classList.contains('favorite-icon')) {
+              showModal('guest-restricted-modal');
+            }
+          });
+        }
+
+        // Favorite toggle event
+        const favoriteIcon = cardElement.querySelector('.favorite-icon');
+        if (favoriteIcon) {
+          favoriteIcon.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            console.log('Favorite icon clicked for card:', card.id);
+            const isFavorite = favoriteIcon.dataset.isFavorite === 'true';
+            const updated = await toggleFavorite(card.id, isFavorite);
+            if (updated) {
+              favoriteIcon.classList.toggle('fas', !isFavorite);
+              favoriteIcon.classList.toggle('far', isFavorite);
+              favoriteIcon.classList.toggle('text-red-600', !isFavorite);
+              favoriteIcon.classList.toggle('text-gray-400', isFavorite);
+              favoriteIcon.dataset.isFavorite = !isFavorite;
+              const cardIndex = currentCollection.findIndex(c => c.id === card.id);
+              if (cardIndex !== -1) {
+                currentCollection[cardIndex].favorite = !isFavorite;
+              }
+            }
+          });
+        }
+
+        container.appendChild(cardElement);
+      });
+    }
+
+    // Load and display collection
+    async function loadCollection(filter = 'all', user) {
+      console.log('loadCollection called with filter:', filter);
+      const container = document.querySelector('.collection-container');
+      container.innerHTML = '<p class="text-gray-600 text-center col-span-full">Đang tải bộ sưu tập...</p>';
+
+      try {
+        if (!user) {
+          console.warn('No user authenticated in loadCollection');
+          loadGuestCollection(filter);
+          return;
+        }
+
+        console.log('Fetching cards for user:', user.uid);
+        const querySnapshot = await db.collection('users').doc(user.uid).collection('cards').get();
+        console.log('Firestore query successful, docs:', querySnapshot.size);
+        const collectedCards = [];
+        querySnapshot.forEach((doc) => {
+          collectedCards.push({ ...doc.data(), collected: true });
+        });
+
+        currentCollection = [...collectedCards, ...hiddenCards.filter(card => !collectedCards.some(c => c.id === card.id))];
+
+        const cardCount = collectedCards.length;
+        const level = Math.floor(cardCount / 10) + 1;
+        const progress = cardCount % 10;
+
+        // Force leaderboard update
+        console.log('Forcing leaderboard update in loadCollection');
+        await updateLeaderboard(user, cardCount);
+
+        const levelDoc = await db.collection('users').doc(user.uid).collection('profile').doc('level').get();
+        const currentLevel = levelDoc.exists ? levelDoc.data().level : 0;
+
+        if (level > currentLevel) {
+          const saved = await saveUserLevel(user, level);
+          if (saved) {
+            showLevelUpModal(level);
+          }
+        }
+
+        document.getElementById('level-display').textContent = `Cấp độ ${level}`;
+        document.querySelector('.progress-bar').style.width = `${(progress / 10) * 100}%`;
+        document.querySelector('.progress-text').textContent = `${progress}/10 thẻ để lên cấp tiếp theo`;
+
+        let filteredCollection = currentCollection;
+        if (filter === 'recent') {
+          filteredCollection = collectedCards.slice().sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
+        } else if (filter === 'rare') {
+          filteredCollection = currentCollection.filter(card => card.rarity > 10);
+          console.log('Rare filter applied, cards found:', filteredCollection.length);
+        } else if (filter === 'favorite') {
+          filteredCollection = collectedCards.filter(card => card.favorite === true);
+          console.log('Favorite filter applied, cards found:', filteredCollection.length);
+        }
+
+        currentFilter = filter;
+        document.getElementById('collection-view').classList.remove('hidden');
+        document.getElementById('leaderboard-view').classList.add('hidden');
+        displayCollection(filteredCollection, filter, user, false);
+
+        const uniqueLocations = new Set(collectedCards.map(card => card.location)).size;
+        const rarityPoints = collectedCards.reduce((sum, card) => sum + (card.rarity || 0), 0);
+        const achievementCount = Math.floor(cardCount / 5);
+
+        document.querySelector('.card-count').textContent = cardCount;
+        document.querySelector('.location-count').textContent = uniqueLocations;
+        document.querySelector('.rarity-points').textContent = rarityPoints;
+        document.querySelector('.achievement-count').textContent = achievementCount;
+      } catch (error) {
+        console.error('Error loading collection:', error);
+        container.innerHTML = '<p class="text-gray-600 text-center col-span-full">Lỗi tải bộ sưu tập: ' + error.message + '</p>';
+      }
+    }
+
+    // Close modal
+    function closeModal(modalId) {
+      console.log(`Closing ${modalId}`);
+      const modal = document.getElementById(modalId);
+      modal.classList.add('hidden');
+    }
+
+    // Filter collection
+    function filterCollection(type) {
+      console.log('filterCollection called with type:', type);
+      document.querySelectorAll('.flex button').forEach(btn => {
+        btn.classList.remove('bg-blue-600', 'text-white');
+        btn.classList.add('bg-gray-200', 'text-gray-600');
+      });
+      event.target.classList.remove('bg-gray-200', 'text-gray-600');
+      event.target.classList.add('bg-blue-600', 'text-white');
+      if (isGuest) {
+        loadGuestCollection(type);
+      } else if (currentUser) {
+        loadCollection(type, currentUser);
+      }
+    }
+
+    // Logout function
+    function logout() {
+      auth.signOut().then(() => {
+        console.log('User signed out');
+        window.location.href = 'login.html';
+      }).catch((error) => {
+        console.error('Logout error:', error);
+        alert('Lỗi đăng xuất: ' + error.message);
+      });
+    }
+
+    // Refresh function
+    function refresh() {
+      window.location.reload();
+    }
+
+    // Modal close handlers
+    document.addEventListener('DOMContentLoaded', () => {
+      const modals = ['card-modal', 'levelup-modal', 'guest-restricted-modal'];
+      modals.forEach(modalId => {
+        const modal = document.getElementById(modalId);
+        modal.addEventListener('click', (e) => {
+          if (e.target === modal) {
+            closeModal(modalId);
+          }
+        });
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+            closeModal(modalId);
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,158 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Travel Dex</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100 font-sans">
+  <!-- Navigation Bar -->
+  <nav class="bg-white shadow-md p-4 flex justify-between items-center">
+    <div class="flex items-center space-x-4">
+      <a href="index.html" class="text-xl font-bold text-blue-600">Travel Dex</a>
+      <a href="collection.html" class="text-gray-600 hover:text-blue-600 font-semibold">Bộ sưu tập</a>
+    </div>
+    <div class="flex items-center space-x-4">
+      <span id="username" class="text-gray-600">Khách</span>
+      <a href="login.html" id="login-link" class="text-gray-600 hover:text-blue-600">Đăng nhập</a>
+      <a href="signup.html" id="signup-link" class="text-gray-600 hover:text-blue-600">Đăng ký</a>
+      <a href="#" id="logout-link" class="hidden text-gray-600 hover:text-red-600" onclick="logout()">Đăng xuất</a>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="container mx-auto p-6">
+    <!-- Header -->
+    <div class="text-center mb-6">
+      <h1 class="text-3xl font-bold text-blue-600">Chào Mừng Đến Với Travel Dex</h1>
+      <p class="text-gray-600 mt-2">Khám phá các danh lam thắng cảnh và thu thập thẻ để ghi dấu hành trình của bạn!</p>
+    </div>
+
+    <!-- Features Section -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+      <div class="bg-white rounded-lg shadow-md p-4 text-center">
+        <i class="fas fa-globe-asia text-3xl text-blue-600 mb-2"></i>
+        <p class="text-gray-600">Khám phá những địa danh nổi tiếng khắp Việt Nam và thế giới.</p>
+      </div>
+      <div class="bg-white rounded-lg shadow-md p-4 text-center">
+        <i class="fas fa-ticket-alt text-3xl text-blue-600 mb-2"></i>
+        <p class="text-gray-600">Thu thập thẻ để theo dõi tiến trình và nhận thành tựu độc đáo.</p>
+      </div>
+      <div class="bg-white rounded-lg shadow-md p-4 text-center">
+        <i class="fas fa-rocket text-3xl text-blue-600 mb-2"></i>
+        <p class="text-gray-600">Bắt đầu cuộc phiêu lưu của bạn ngay hôm nay!</p>
+      </div>
+    </div>
+
+    <!-- Call to Action -->
+    <div class="text-center">
+      <a href="collection.html" class="bg-blue-600 text-white px-6 py-3 rounded-full hover:bg-blue-700 transition flex items-center justify-center mx-auto w-fit">
+        <i class="fas fa-book mr-2"></i> Bộ sưu tập thẻ
+      </a>
+    </div>
+  </div>
+
+  <!-- Footer Navigation -->
+  <footer class="bg-white shadow-md p-4 fixed bottom-0 w-full flex justify-around">
+    <a href="index.html" class="text-gray-600 hover:text-blue-600"><i class="fas fa-home text-2xl"></i></a>
+    <a href="collection.html" class="text-gray-600 hover:text-blue-600"><i class="fas fa-map text-2xl"></i></a>
+    <a href="#" onclick="refresh()" class="text-gray-600 hover:text-blue-600"><i class="fas fa-sync-alt text-2xl"></i></a>
+  </footer>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+
+  <script>
+    // Initialize Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyDOhTKHU4P3jJ7aTkvSiewNoHu1_KXkcrU",
+      authDomain: "loginandsignin-4932b.firebaseapp.com",
+      projectId: "loginandsignin-4932b",
+      storageBucket: "loginandsignin-4932b.appspot.com",
+      messagingSenderId: "863133586719",
+      appId: "1:863133586719:web:81eb32db8e08e8d89e8c2a"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+
+    // Check auth state
+    auth.onAuthStateChanged((user) => {
+      console.log('Auth state changed:', user ? `User ${user.uid}` : 'Guest');
+      const usernameElement = document.getElementById('username');
+      const loginLink = document.getElementById('login-link');
+      const signupLink = document.getElementById('signup-link');
+      const logoutLink = document.getElementById('logout-link');
+
+      if (user) {
+        usernameElement.textContent = user.displayName || user.email;
+        loginLink.classList.add('hidden');
+        signupLink.classList.add('hidden');
+        logoutLink.classList.remove('hidden');
+      } else {
+        usernameElement.textContent = 'Khách';
+        loginLink.classList.remove('hidden');
+        signupLink.classList.remove('hidden');
+        logoutLink.classList.add('hidden');
+      }
+    });
+
+    // Logout function
+    function logout() {
+      auth.signOut().then(() => {
+        console.log('User signed out');
+        window.location.href = 'login.html';
+      }).catch((error) => {
+        console.error('Logout error:', error);
+        alert('Lỗi đăng xuất: ' + error.message);
+      });
+    }
+
+    // Refresh function
+    function refresh() {
+      window.location.reload();
+    }
+  </script>
+</body>
+</html>

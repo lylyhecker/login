@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Travel Dex - Khám Phá Thế Giới</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100 font-sans">
+  <!-- Navigation Bar -->
+  <nav class="bg-white shadow-md p-4 flex justify-between items-center">
+    <div class="flex items-center space-x-4">
+      <a href="index.html" class="text-xl font-bold text-blue-600">Travel Dex</a>
+      <a href="collection.html" class="text-gray-600 hover:text-blue-600">Bộ sưu tập</a>
+    </div>
+    <div class="flex items-center space-x-4">
+      <span id="username" class="text-gray-600">Đang tải...</span>
+      <a href="#" onclick="logout()" class="text-gray-600 hover:text-red-600">Đăng xuất</a>
+      <button class="md:hidden text-gray-600" onclick="toggleMenu()">
+        <i class="fas fa-bars text-2xl"></i>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Mobile Menu -->
+  <div id="mobile-menu" class="hidden bg-white shadow-md p-4 md:hidden">
+    <a href="signin.html" class="block text-gray-600 hover:text-blue-600 py-2">Đăng ký</a>
+    <a href="login.html" class="block text-gray-600 hover:text-blue-600 py-2">Đăng nhập</a>
+  </div>
+
+  <!-- Hero Section -->
+  <div class="container mx-auto p-6">
+    <div class="bg-white rounded-lg shadow-lg p-6 text-center">
+      <h1 class="text-4xl font-bold text-blue-600 mb-4">Chào Mừng Đến Với Travel Dex</h1>
+      <p class="text-xl text-gray-600 mb-6">Khám phá các danh lam thắng cảnh và thu thập thẻ để ghi dấu hành trình của bạn!</p>
+      <!-- Featured Image/Video -->
+      <img src="https://via.placeholder.com/600x400?text=Khám+Phá+Việt+Nam" alt="Danh lam thắng cảnh" class="w-full rounded-lg mb-6 object-cover">
+      <!-- Informational Text -->
+      <div class="text-gray-600 mb-6">
+        <p>Khám phá những địa danh nổi tiếng khắp Việt Nam và thế giới.</p>
+        <p>Thu thập thẻ để theo dõi tiến trình và nhận thành tựu độc đáo.</p>
+        <p>Bắt đầu cuộc phiêu lưu của bạn ngay hôm nay!</p>
+      </div>
+      <!-- Action Buttons -->
+      <div class="flex justify-center">
+        <a href="collection.html" class="bg-gray-600 text-white px-6 py-2 rounded-full hover:bg-gray-700 transition flex items-center">
+          <i class="fas fa-book mr-2"></i> Bộ sưu tập thẻ
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer Navigation -->
+  <footer class="bg-white shadow-md p-4 fixed bottom-0 w-full flex justify-around">
+    <a href="index.html" class="text-gray-600 hover:text-blue-600"><i class="fas fa-home text-2xl"></i></a>
+    <a href="collection.html" class="text-gray-600 hover:text-blue-600"><i class="fas fa-map text-2xl"></i></a>
+    <a href="#" onclick="refresh()" class="text-gray-600 hover:text-blue-600"><i class="fas fa-sync-alt text-2xl"></i></a>
+  </footer>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+
+  <script>
+    // Initialize Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyDOhTKHU4P3jJ7aTkvSiewNoHu1_KXkcrU",
+      authDomain: "loginandsignin-4932b.firebaseapp.com",
+      projectId: "loginandsignin-4932b",
+      storageBucket: "loginandsignin-4932b.appspot.com",
+      messagingSenderId: "863133586719",
+      appId: "1:863133586719:web:81eb32db8e08e8d89e8c2a"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+
+    // Check auth state
+    auth.onAuthStateChanged((user) => {
+      if (user) {
+        document.getElementById('username').textContent = user.displayName || user.email;
+      } else {
+        window.location.href = 'login.html';
+      }
+    });
+
+    // Toggle mobile menu
+    function toggleMenu() {
+      const menu = document.getElementById('mobile-menu');
+      menu.classList.toggle('hidden');
+    }
+
+    // Logout function
+    function logout() {
+      auth.signOut().then(() => {
+        window.location.href = 'login.html';
+      }).catch((error) => {
+        alert('Lỗi đăng xuất: ' + error.message);
+      });
+    }
+
+    // Refresh function
+    function refresh() {
+      window.location.reload();
+    }
+  </script>
+</body>
+</html>
