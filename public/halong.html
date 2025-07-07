@@ -42,7 +42,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vịnh Hạ Long - Travel Dex</title>
+  <title>Đỉnh Fansipan - Travel Dex</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -54,8 +54,10 @@
       <a href="collection.html" class="text-gray-600 hover:text-blue-600">Bộ sưu tập</a>
     </div>
     <div class="flex items-center space-x-4">
-      <span id="username" class="text-gray-600">Đang tải...</span>
-      <a href="#" onclick="logout()" class="text-gray-600 hover:text-red-600">Đăng xuất</a>
+      <span id="username" class="text-gray-600">Khách</span>
+      <a href="login.html" id="login-link" class="text-gray-600 hover:text-blue-600">Đăng nhập</a>
+      <a href="signup.html" id="signup-link" class="text-gray-600 hover:text-blue-600">Đăng ký</a>
+      <a href="#" id="logout-link" class="hidden text-gray-600 hover:text-red-600" onclick="logout()">Đăng xuất</a>
     </div>
   </nav>
 
@@ -66,7 +68,7 @@
 
     <!-- Card Content -->
     <div class="bg-white rounded-lg shadow-lg p-6 flex flex-col md:flex-row items-center">
-      <img src="https://via.placeholder.com/300x200?text=Vịnh+Hạ+Long" alt="Vịnh Hạ Long" class="w-full md:w-1/3 rounded-lg mb-4 md:mb-0 md:mr-6">
+      <img src="https://i2.ex-cdn.com/crystalbay.com/files/content/2024/08/09/vinh-ha-long-3-1624.jpg" alt="Vịnh Hạ Long" class="w-full md:w-1/3 rounded-lg mb-4 md:mb-0 md:mr-6">
       <div>
         <h2 class="text-2xl font-semibold text-gray-800 mb-2">Vịnh Hạ Long</h2>
         <p class="text-gray-600 mb-2">Vịnh Hạ Long, thuộc tỉnh Quảng Ninh, là di sản thiên nhiên thế giới được UNESCO công nhận.</p>
@@ -77,12 +79,38 @@
 
     <!-- Action Buttons -->
     <div class="flex justify-center space-x-4 mt-6">
-      <button id="save-card-btn" onclick="saveCard()" class="bg-blue-600 text-white px-6 py-2 rounded-full hover:bg-blue-700 transition flex items-center">
+      <button id="save-card-btn" class="bg-blue-600 text-white px-6 py-2 rounded-full hover:bg-blue-700 transition flex items-center" disabled>
         <i class="fas fa-save mr-2"></i> Lưu thẻ
       </button>
       <a href="collection.html" class="bg-gray-600 text-white px-6 py-2 rounded-full hover:bg-gray-700 transition flex items-center">
         <i class="fas fa-book mr-2"></i> Bộ sưu tập thẻ
       </a>
+    </div>
+  </div>
+
+  <!-- Notification Modal -->
+  <div id="notification-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50" role="dialog" aria-labelledby="notification-title" aria-modal="true">
+    <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-sm mx-4 text-center">
+      <i id="notification-icon" class="text-5xl mb-4"></i>
+      <h2 id="notification-title" class="text-2xl font-semibold text-gray-800 mb-4"></h2>
+      <p id="notification-message" class="text-gray-600 mb-6"></p>
+      <div class="flex justify-center">
+        <button onclick="closeModal('notification-modal')" class="bg-blue-600 text-white px-4 py-2 rounded-full hover:bg-blue-700 transition">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Guest Restricted Modal -->
+  <div id="guest-restricted-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50" role="dialog" aria-labelledby="guest-restricted-title" aria-modal="true">
+    <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-sm mx-4 text-center">
+      <i class="fas fa-lock text-5xl text-red-600 mb-4"></i>
+      <h2 id="guest-restricted-title" class="text-2xl font-semibold text-gray-800 mb-4">Tính năng bị hạn chế</h2>
+      <p class="text-gray-600 mb-6">Bạn cần đăng nhập hoặc đăng ký để thu thập thẻ!</p>
+      <div class="flex justify-center space-x-4">
+        <a href="login.html" class="bg-blue-600 text-white px-4 py-2 rounded-full hover:bg-blue-700 transition">Đăng nhập</a>
+        <a href="signup.html" class="bg-green-600 text-white px-4 py-2 rounded-full hover:bg-green-700 transition">Đăng ký</a>
+        <button onclick="closeModal('guest-restricted-modal')" class="bg-gray-600 text-white px-4 py-2 rounded-full hover:bg-gray-700 transition">Đóng</button>
+      </div>
     </div>
   </div>
 
@@ -112,25 +140,68 @@
     const auth = firebase.auth();
     const db = firebase.firestore();
 
+    // Show notification modal
+    function showNotification(title, message, type = 'success') {
+      console.log('Showing notification:', title, message, type);
+      const modal = document.getElementById('notification-modal');
+      const titleElement = document.getElementById('notification-title');
+      const messageElement = document.getElementById('notification-message');
+      const iconElement = document.getElementById('notification-icon');
+
+      titleElement.textContent = title;
+      messageElement.textContent = message;
+      iconElement.className = `text-5xl mb-4 ${type === 'success' ? 'fas fa-check-circle text-green-600' : 'fas fa-exclamation-circle text-red-600'}`;
+      modal.classList.remove('hidden');
+      modal.focus();
+    }
+
+    // Close modal
+    function closeModal(modalId) {
+      console.log(`Closing ${modalId}`);
+      const modal = document.getElementById(modalId);
+      modal.classList.add('hidden');
+    }
+
     // Check auth state
     auth.onAuthStateChanged((user) => {
-      console.log('Auth state changed:', user ? `User ${user.uid}` : 'No user');
+      console.log('Auth state changed:', user ? `User ${user.uid}` : 'Guest');
+      const usernameElement = document.getElementById('username');
+      const loginLink = document.getElementById('login-link');
+      const signupLink = document.getElementById('signup-link');
+      const logoutLink = document.getElementById('logout-link');
+      const saveButton = document.getElementById('save-card-btn');
+
       if (user) {
-        document.getElementById('username').textContent = user.displayName || user.email;
+        usernameElement.textContent = user.displayName || user.email;
+        loginLink.classList.add('hidden');
+        signupLink.classList.add('hidden');
+        logoutLink.classList.remove('hidden');
+        saveButton.disabled = false;
+        saveButton.classList.remove('bg-gray-400', 'cursor-not-allowed');
+        saveButton.classList.add('bg-blue-600', 'hover:bg-blue-700');
       } else {
-        window.location.href = 'login.html';
+        usernameElement.textContent = 'Khách';
+        loginLink.classList.remove('hidden');
+        signupLink.classList.remove('hidden');
+        logoutLink.classList.add('hidden');
+        saveButton.disabled = true;
+        saveButton.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+        saveButton.classList.add('bg-gray-400', 'cursor-not-allowed');
+        saveButton.addEventListener('click', (e) => {
+          e.preventDefault();
+          showModal('guest-restricted-modal');
+        });
       }
     });
 
-    // Save card to Firestore via REST API
+    // Save card to Firestore and update leaderboard
     async function saveCard(attempt = 1, maxAttempts = 3) {
       console.log(`saveCard attempt ${attempt} of ${maxAttempts}`);
       try {
         const user = auth.currentUser;
         if (!user) {
           console.warn('No user authenticated');
-          alert('Vui lòng đăng nhập để lưu thẻ!');
-          window.location.href = 'login.html';
+          showModal('guest-restricted-modal');
           return;
         }
 
@@ -138,62 +209,49 @@
         const card = {
           id: 'halong',
           name: 'Vịnh Hạ Long',
-          image: 'https://via.placeholder.com/300x200?text=Vịnh+Hạ+Long',
+          image: 'https://i2.ex-cdn.com/crystalbay.com/files/content/2024/08/09/vinh-ha-long-2-1624.jpg',
           description: 'Vịnh Hạ Long là di sản thiên nhiên thế giới tại Quảng Ninh.',
           rarity: 2,
           location: 'Quảng Ninh, Việt Nam'
         };
 
-        console.log('Preparing REST API request for card:', card);
-        const token = await user.getIdToken();
-        const url = `https://firestore.googleapis.com/v1/projects/loginandsignin-4932b/databases/(default)/documents/users/${user.uid}/cards/${card.id}`;
-        const response = await fetch(url, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            fields: {
-              id: { stringValue: card.id },
-              name: { stringValue: card.name },
-              image: { stringValue: card.image },
-              description: { stringValue: card.description },
-              rarity: { integerValue: card.rarity },
-              location: { stringValue: card.location }
-            }
-          })
-        });
+        // Save card
+        await db.collection('users').doc(user.uid).collection('cards').doc(card.id).set(card);
+        console.log('Card saved successfully:', card.id);
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(`HTTP ${response.status}: ${errorData.error?.message || 'Unknown error'}`);
-        }
+        // Update leaderboard
+        const cardsSnapshot = await db.collection('users').doc(user.uid).collection('cards').get();
+        const cardCount = cardsSnapshot.size;
+        const leaderboardDoc = {
+          uid: user.uid,
+          displayName: user.displayName || user.email.split('@')[0] || 'Người chơi ẩn danh',
+          cardCount: cardCount >= 0 ? cardCount : 0,
+          lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        console.log('Writing leaderboard data:', leaderboardDoc);
+        await db.collection('leaderboard').doc(user.uid).set(leaderboardDoc);
+        console.log(`Leaderboard updated for user ${user.uid} with cardCount: ${cardCount}`);
 
-        console.log('Card saved successfully via REST API:', card.id);
-        alert('Đã lưu thẻ Vịnh Hạ Long vào bộ sưu tập!');
+        showNotification('Thành công!', 'Đã lưu thẻ Vịnh Hạ Long vào bộ sưu tập!', 'success');
       } catch (error) {
         console.error(`Attempt ${attempt} failed:`, error);
-        if (attempt < maxAttempts && (error.message.includes('network') || error.message.includes('400'))) {
+        if (attempt < maxAttempts && (error.code === 'unavailable' || error.code === 'deadline-exceeded')) {
           console.log(`Retrying saveCard, attempt ${attempt + 1}`);
           await new Promise(resolve => setTimeout(resolve, 1000));
           return saveCard(attempt + 1, maxAttempts);
         }
         console.error('Final error saving card:', error);
-        alert('Lỗi lưu thẻ: ' + error.message + '. Vui lòng kiểm tra kết nối mạng hoặc thử lại sau.');
+        showNotification('Lỗi', 'Lỗi lưu thẻ: ' + error.message, 'error');
       }
     }
 
-    // Bind saveCard to button
-    document.addEventListener('DOMContentLoaded', () => {
-      const saveButton = document.getElementById('save-card-btn');
-      if (saveButton) {
-        console.log('Binding click event to save-card-btn');
-        saveButton.addEventListener('click', saveCard);
-      } else {
-        console.error('Save button not found in DOM');
-      }
-    });
+    // Show modal
+    function showModal(modalId) {
+      console.log(`Showing ${modalId}`);
+      const modal = document.getElementById(modalId);
+      modal.classList.remove('hidden');
+      modal.focus();
+    }
 
     // Logout function
     function logout() {
@@ -202,7 +260,7 @@
         window.location.href = 'login.html';
       }).catch((error) => {
         console.error('Logout error:', error);
-        alert('Lỗi đăng xuất: ' + error.message);
+        showNotification('Lỗi', 'Lỗi đăng xuất: ' + error.message, 'error');
       });
     }
 
@@ -210,6 +268,30 @@
     function refresh() {
       window.location.reload();
     }
+
+    // Modal close handlers
+    document.addEventListener('DOMContentLoaded', () => {
+      const modals = ['notification-modal', 'guest-restricted-modal'];
+      modals.forEach(modalId => {
+        const modal = document.getElementById(modalId);
+        modal.addEventListener('click', (e) => {
+          if (e.target === modal) {
+            closeModal(modalId);
+          }
+        });
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+            closeModal(modalId);
+          }
+        });
+      });
+
+      // Bind saveCard to button
+      const saveButton = document.getElementById('save-card-btn');
+      if (saveButton) {
+        saveButton.addEventListener('click', saveCard);
+      }
+    });
   </script>
 </body>
 </html>
